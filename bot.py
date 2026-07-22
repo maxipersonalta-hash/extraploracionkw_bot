@@ -1,13 +1,26 @@
 import os
 import re
 import logging
+from threading import Thread
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# Toma el token de la web de Render automáticamente
-TOKEN = os.getenv("8625756667:AAGPvsGM-_FywOhmk6i_NIgvVE8K7LCzFlw")
+TOKEN = os.getenv("BOT_TOKEN")
+
+# Servidor web dummy para mantener vivo el servicio gratuito de Render
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot activo")
+
+def run_web_server():
+    port = int(os.getenv("PORT", 8080))
+    server = HTTPServer(('0.0.0.0', port), SimpleHandler)
+    server.serve_forever()
 
 def procesar_metodo_fraude(t1_str: str, t2_str: str) -> str:
     t1_clean = re.sub(r'\D', '', t1_str)
@@ -32,10 +45,7 @@ def procesar_metodo_fraude(t1_str: str, t2_str: str) -> str:
     g2_r1 = cadena_unida[:8]
     r1_full = g1_t1 + g2_r1
 
-    mascara = []
-    for d1, d2 in zip(t1_clean, r1_full):
-        mascara.append(d1 if d1 == d2 else "x")
-
+    mascara = [d1 if d1 == d2 else "x" for d1, d2 in zip(t1_clean, r1_full)]
     mascara_parcial = "".join(mascara)
     mascara_final_list = list(mascara_parcial)
     regla_aplicada = False
@@ -74,10 +84,7 @@ def procesar_metodo_fraude(t1_str: str, t2_str: str) -> str:
 """
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "👋 **¡Hola! Bot de Prevención de Fraude.**\n\nEnvíame los 2 números de 16 dígitos.",
-        parse_mode="Markdown"
-    )
+    await update.message.reply_text("👋 **¡Hola! Bot de Prevención de Fraude.**\n\nEnvíame 2 números de 16 dígitos.", parse_mode="Markdown")
 
 async def procesar_mensaje(update: Update, context: ContextTypes.DEFAULT_TYPE):
     numeros = re.findall(r'\b\d{16}\b', update.message.text)
@@ -89,6 +96,11 @@ async def procesar_mensaje(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == '__main__':
     if not TOKEN:
         raise ValueError("Falta la variable BOT_TOKEN.")
+    
+    # Inicia servidor HTTP secundario
+    Thread(target=run_web_server, daemon=True).start()
+    
+    # Inicia el bot de Telegram
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, procesar_mensaje))
