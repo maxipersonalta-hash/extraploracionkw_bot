@@ -214,9 +214,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """,
             parse_mode="Markdown"
         )
-        # Volver al menú después de 3 segundos
-        await query.answer("Información mostrada", show_alert=False)
-        
         # Crear botón para volver
         keyboard = [[InlineKeyboardButton("🔙 Volver", callback_data="volver")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -322,19 +319,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
     
+    # Si el usuario no tiene estado o no está en medio de un proceso, ignorar silenciosamente
     if user_id not in USER_STATE:
         USER_STATE[user_id] = {'method': None, 'step': 0, 'num1': None, 'num2': None}
-        await update.message.reply_text("ℹ️ Usa /start para comenzar.")
+        # No responder, solo crear el estado
         return
     
     state = USER_STATE[user_id]
     
+    # Si no hay método activo, ignorar silenciosamente
+    if state['method'] is None:
+        return
+    
     # Limpiar el número
     numero_clean = re.sub(r'\D', '', text)
-    
-    if state['method'] is None:
-        await update.message.reply_text("ℹ️ Usa /start para comenzar.")
-        return
     
     # Verificar si es un número válido
     if len(numero_clean) != 16:
