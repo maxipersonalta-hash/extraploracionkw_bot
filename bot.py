@@ -11,7 +11,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Servidor web dummy para mantener vivo el servicio gratuito de Render
+# Servidor web dummy
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -29,14 +29,12 @@ def run_web_server():
 
 # Métodos de extrapolación
 def metodo_basico_activacion(numero: str) -> str:
-    """Método básico de activación - reemplaza últimos 6 dígitos con x"""
     num_clean = re.sub(r'\D', '', numero)
     if len(num_clean) != 16:
         return None
     return num_clean[:10] + "xxxxxx"
 
 def metodo_basico_similitud(t1: str, t2: str) -> str:
-    """Método básico de similitud - compara dos números de 16 dígitos"""
     t1_clean = re.sub(r'\D', '', t1)
     t2_clean = re.sub(r'\D', '', t2)
     
@@ -54,7 +52,6 @@ def metodo_basico_similitud(t1: str, t2: str) -> str:
     return prefijo1 + ''.join(resultado)
 
 def metodo_avanzado_b10sum(t1: str, t2: str) -> str:
-    """Método avanzado b10*sum"""
     t1_clean = re.sub(r'\D', '', t1)
     t2_clean = re.sub(r'\D', '', t2)
     
@@ -84,7 +81,6 @@ def metodo_avanzado_b10sum(t1: str, t2: str) -> str:
     return resultado
 
 def metodo_indentacion_logica(numero: str) -> str:
-    """Método de indentación lógica"""
     num_clean = re.sub(r'\D', '', numero)
     if len(num_clean) != 16:
         return None
@@ -103,7 +99,6 @@ def metodo_indentacion_logica(numero: str) -> str:
     return prefijo + grupo1_mod + grupo2_mod + grupo3_mod
 
 def metodo_materialdinverter(t1: str, t2: str) -> str:
-    """Método MaterialDInVerter - el más complejo"""
     t1_clean = re.sub(r'\D', '', t1)
     t2_clean = re.sub(r'\D', '', t2)
     
@@ -132,39 +127,51 @@ def metodo_materialdinverter(t1: str, t2: str) -> str:
     
     return mascara_final
 
-# Manejo de estados de conversación
 USER_STATE = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mensaje de inicio elegante"""
     user_id = update.effective_user.id
     username = update.effective_user.first_name or "Usuario"
     
     USER_STATE[user_id] = {'method': None, 'step': 0, 'num1': None, 'num2': None}
     
-    # Obtener hora actual
     now = datetime.now()
     hora_actual = now.strftime("%I:%M %p").lower()
     
-    welcome_text = f"""
-🌟 *Bienvenido a ExtraploradorKW* 🌟
+    # Intentar enviar imagen
+    try:
+        with open('rico.png', 'rb') as photo:
+            await update.message.reply_photo(photo, caption=f"""
+🌟 *¡Bienvenido a ExtraploradorKW!* 🌟
 
 ━━━━━━━━━━━━━━━━━━━
-👤 *Usuario:* {username}
-🆔 *ID:* `{user_id}`
-📊 *Plan:* Free User
-💳 *Créditos:* 0
+👤 *{username}* · ID: `{user_id}`
+📊 *Plan:* Free · 💳 *Créditos:* 0
 ━━━━━━━━━━━━━━━━━━━
 
-📌 *Comandos Rápidos:*
-• /cmds - Ver comandos
+⚡ *¿Qué deseas hacer hoy?*
+
+Usa los botones de abajo o escribe /cmds para ver los comandos.
 
 ⏰ {hora_actual}
+""", parse_mode="Markdown")
+    except:
+        # Si no encuentra la imagen, enviar solo texto
+        await update.message.reply_text(f"""
+🌟 *¡Bienvenido a ExtraploradorKW!* 🌟
+
+━━━━━━━━━━━━━━━━━━━
+👤 *{username}* · ID: `{user_id}`
+📊 *Plan:* Free · 💳 *Créditos:* 0
 ━━━━━━━━━━━━━━━━━━━
 
-🔐 *Selecciona una opción para comenzar:*
-"""
+⚡ *¿Qué deseas hacer hoy?*
 
+Usa los botones de abajo o escribe /cmds para ver los comandos.
+
+⏰ {hora_actual}
+""", parse_mode="Markdown")
+    
     keyboard = [
         [InlineKeyboardButton("🚪 Gateways", callback_data="gateways")],
         [InlineKeyboardButton("📊 Estado", callback_data="estado")],
@@ -172,10 +179,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await update.message.reply_text(welcome_text, parse_mode="Markdown", reply_markup=reply_markup)
+    await update.message.reply_text("🔽 *Selecciona una opción:*", parse_mode="Markdown", reply_markup=reply_markup)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Maneja los botones del menú principal"""
     query = update.callback_query
     await query.answer()
     
@@ -186,14 +192,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton("📌 Activación", callback_data="basico_activacion")],
             [InlineKeyboardButton("📌 Similitud", callback_data="basico_similitud")],
-            [InlineKeyboardButton("⚡ Avanzada (b10*sum)", callback_data="avanzado_b10sum")],
-            [InlineKeyboardButton("🧠 Indentación Lógica", callback_data="indentacion_logica")],
+            [InlineKeyboardButton("⚡ b10*sum", callback_data="avanzado_b10sum")],
+            [InlineKeyboardButton("🧠 Indentación", callback_data="indentacion_logica")],
             [InlineKeyboardButton("🔬 MaterialDInVerter", callback_data="materialdinverter")],
             [InlineKeyboardButton("🔙 Volver", callback_data="volver")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
-            "🔐 *Métodos de Extrapolación*\n━━━━━━━━━━━━━━\nSelecciona un método para comenzar:",
+            "🔐 *Métodos de Extrapolación*\n━━━━━━━━━━━━━━\nElige el que mejor se adapte a lo que buscas:",
             parse_mode="Markdown",
             reply_markup=reply_markup
         )
@@ -201,7 +207,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "estado":
         await query.edit_message_text(
             f"""
-📊 *Tu Estado*
+📊 *Tu Estado Actual*
 ━━━━━━━━━━━━━━
 👤 *Usuario:* {username}
 🆔 *ID:* `{user_id}`
@@ -209,12 +215,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 💳 *Créditos:* 0
 📈 *Consultas:* 0
 
-🔄 *Estado:* Activo
+✅ *Estado:* Activo y listo para usar
 ━━━━━━━━━━━━━━
 """,
             parse_mode="Markdown"
         )
-        # Crear botón para volver
         keyboard = [[InlineKeyboardButton("🔙 Volver", callback_data="volver")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_reply_markup(reply_markup=reply_markup)
@@ -222,26 +227,25 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "ayuda":
         await query.edit_message_text(
             f"""
-ℹ️ *Ayuda - ExtraploradorKW*
+ℹ️ *Ayuda Rápida*
 ━━━━━━━━━━━━━━━━━━━
 
-🎯 *¿Qué es ExtraploradorKW?*
-Es una herramienta de extrapolación de números que utiliza diversos métodos matemáticos para generar patrones.
+🎯 *ExtraploradorKW* te ayuda a generar patrones numéricos usando diferentes métodos.
 
-📌 *Métodos Disponibles:*
+📌 *Métodos disponibles:*
 
-1️⃣ *Activación* - Reemplaza últimos 6 dígitos
-2️⃣ *Similitud* - Compara dos números de 16 dígitos
-3️⃣ *Avanzada b10*sum* - Operaciones matemáticas
-4️⃣ *Indentación Lógica* - Reorganización en grupos
-5️⃣ *MaterialDInVerter* - Método más complejo
+1️⃣ *Activación* - Reemplaza los últimos 6 dígitos
+2️⃣ *Similitud* - Compara dos números y marca diferencias
+3️⃣ *b10*sum* - Usa operaciones matemáticas
+4️⃣ *Indentación* - Reorganiza en grupos de 3-4-3
+5️⃣ *MaterialDInVerter* - El más completo y complejo
 
 💡 *Cómo usar:*
-1. Selecciona un método
-2. Ingresa los números solicitados
-3. Obtén el resultado
+1. Elige un método
+2. Ingresa los números que pide
+3. Obtén tu resultado al instante
 
-🔐 *Seguridad:* Todos los datos son procesados localmente
+🔐 *Seguro y privado*
 ━━━━━━━━━━━━━━━━━━━
 """,
             parse_mode="Markdown"
@@ -258,7 +262,7 @@ Es una herramienta de extrapolación de números que utiliza diversos métodos m
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
-            "🏠 *Menú Principal*\n━━━━━━━━━━━━━━\nSelecciona una opción:",
+            "🏠 *Menú Principal*\n━━━━━━━━━━━━━━\n¿Qué quieres hacer ahora?",
             parse_mode="Markdown",
             reply_markup=reply_markup
         )
@@ -273,7 +277,7 @@ Es una herramienta de extrapolación de números que utiliza diversos métodos m
             "basico_activacion": "Activación",
             "basico_similitud": "Similitud",
             "avanzado_b10sum": "b10*sum",
-            "indentacion_logica": "Indentación Lógica",
+            "indentacion_logica": "Indentación",
             "materialdinverter": "MaterialDInVerter"
         }
         
@@ -282,16 +286,14 @@ Es una herramienta de extrapolación de números que utiliza diversos métodos m
         if query.data in ["basico_activacion", "indentacion_logica"]:
             await query.edit_message_text(
                 f"""
-📌 *Método: {method_name}*
-━━━━━━━━━━━━━━━━━━━
+📌 *{method_name}*
 
-📝 *Instrucciones:*
-Ingresa un número de *16 dígitos*.
+✅ *Fácil y rápido.* Solo necesitas un número de 16 dígitos.
 
-📌 *Ejemplo:*
+📝 *Ingresa tu número:*
 `4915110176928790`
 
-⏳ Esperando tu número...
+⏳ *Esperando...*
 ━━━━━━━━━━━━━━━━━━━
 """,
                 parse_mode="Markdown"
@@ -299,45 +301,52 @@ Ingresa un número de *16 dígitos*.
         else:
             await query.edit_message_text(
                 f"""
-📌 *Método: {method_name}*
-━━━━━━━━━━━━━━━━━━━
+📌 *{method_name}*
 
-📝 *Instrucciones:*
-Ingresa el *PRIMER* número de 16 dígitos.
+✅ *Este método necesita 2 números.* Ingresa el primero.
 
-📌 *Ejemplo:*
+📝 *Primer número:*
 `4915110176928790`
 
-⏳ Esperando tu primer número...
+⏳ *Esperando tu primer número...*
 ━━━━━━━━━━━━━━━━━━━
 """,
                 parse_mode="Markdown"
             )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Maneja los mensajes de texto"""
     user_id = update.effective_user.id
     text = update.message.text.strip()
     
-    # Si el usuario no tiene estado o no está en medio de un proceso, ignorar silenciosamente
+    # Si el usuario escribe /cmds, mostrar el menú
+    if text == '/cmds':
+        keyboard = [
+            [InlineKeyboardButton("🚪 Gateways", callback_data="gateways")],
+            [InlineKeyboardButton("📊 Estado", callback_data="estado")],
+            [InlineKeyboardButton("ℹ️ Ayuda", callback_data="ayuda")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            "📋 *Menú Principal*\n━━━━━━━━━━━━━━\nSelecciona una opción:",
+            parse_mode="Markdown",
+            reply_markup=reply_markup
+        )
+        return
+    
     if user_id not in USER_STATE:
         USER_STATE[user_id] = {'method': None, 'step': 0, 'num1': None, 'num2': None}
-        # No responder, solo crear el estado
         return
     
     state = USER_STATE[user_id]
     
-    # Si no hay método activo, ignorar silenciosamente
     if state['method'] is None:
         return
     
-    # Limpiar el número
     numero_clean = re.sub(r'\D', '', text)
     
-    # Verificar si es un número válido
     if len(numero_clean) != 16:
         await update.message.reply_text(
-            "⚠️ *Error:* Debes ingresar exactamente 16 dígitos.\n\n📌 *Ejemplo:* `4915110176928790`",
+            "⚠️ *Error:* El número debe tener 16 dígitos.\n\n📌 *Ejemplo:* `4915110176928790`",
             parse_mode="Markdown"
         )
         return
@@ -347,19 +356,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         state['step'] = 2
         
         if state['method'] in ["basico_activacion", "indentacion_logica"]:
-            # Métodos que solo necesitan 1 número
             resultado = procesar_metodo_unico(state['method'], state['num1'])
             if resultado:
                 await update.message.reply_text(resultado, parse_mode="Markdown")
             else:
-                await update.message.reply_text("❌ Error en el procesamiento. Por favor, intenta de nuevo.")
+                await update.message.reply_text("❌ Algo salió mal. Intenta de nuevo.")
             state['method'] = None
             state['step'] = 0
             state['num1'] = None
             state['num2'] = None
         else:
             await update.message.reply_text(
-                "✅ *Primer número recibido*\n━━━━━━━━━━━━━━\nAhora, ingresa el *SEGUNDO* número de 16 dígitos:",
+                "✅ *Primero listo.* Ahora el segundo número:",
                 parse_mode="Markdown"
             )
     
@@ -369,29 +377,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if resultado:
             await update.message.reply_text(resultado, parse_mode="Markdown")
         else:
-            await update.message.reply_text("❌ Error en el procesamiento. Por favor, intenta de nuevo.")
+            await update.message.reply_text("❌ Algo salió mal. Intenta de nuevo.")
         state['method'] = None
         state['step'] = 0
         state['num1'] = None
         state['num2'] = None
 
 def procesar_metodo_unico(method: str, num: str) -> str:
-    """Procesa métodos que solo requieren un número"""
     if method == "basico_activacion":
         resultado = metodo_basico_activacion(num)
         if resultado:
             return f"""
-📌 *Resultado - Activación*
-━━━━━━━━━━━━━━━━━━━
+📌 *Activación - Resultado*
 
-📥 *Número Original:*
+📥 *Número original:*
 `{num}`
 
-🔄 *Proceso:*
-1️⃣ Tomar primeros 10 dígitos: `{num[:10]}`
-2️⃣ Reemplazar últimos 6 dígitos con `x`
+🔧 *Proceso:*
+1️⃣ Tomé los primeros 10 dígitos: `{num[:10]}`
+2️⃣ Los últimos 6 los cambié por `x`
 
-✨ *Resultado Final:*
+✨ *Resultado:*
 `{resultado}`
 ━━━━━━━━━━━━━━━━━━━
 """
@@ -405,42 +411,39 @@ def procesar_metodo_unico(method: str, num: str) -> str:
             grupo3 = sufijo[7:]
             
             return f"""
-🧠 *Resultado - Indentación Lógica*
-━━━━━━━━━━━━━━━━━━━
+🧠 *Indentación Lógica - Resultado*
 
-📥 *Número Original:*
+📥 *Número original:*
 `{num}`
 
-🔄 *Proceso:*
-1️⃣ Separar primeros 6 dígitos: `{prefijo}`
-2️⃣ Separar resto en grupos (3-4-3): `[{grupo1}] [{grupo2}] [{grupo3}]`
-3️⃣ Reemplazar centro de cada grupo con `x`
+🔧 *Proceso:*
+1️⃣ Separé los primeros 6: `{prefijo}`
+2️⃣ El resto en grupos (3-4-3): `{grupo1} | {grupo2} | {grupo3}`
+3️⃣ Puse `x` en el centro de cada grupo
 
-✨ *Resultado Final:*
+✨ *Resultado:*
 `{resultado}`
 ━━━━━━━━━━━━━━━━━━━
 """
     return None
 
 def procesar_metodo_doble(method: str, num1: str, num2: str) -> str:
-    """Procesa métodos que requieren dos números"""
     if method == "basico_similitud":
         resultado = metodo_basico_similitud(num1, num2)
         if resultado:
             return f"""
-📌 *Resultado - Similitud*
-━━━━━━━━━━━━━━━━━━━
+📌 *Similitud - Resultado*
 
-📥 *Números de Entrada:*
+📥 *Números:*
 • T1: `{num1}`
 • T2: `{num2}`
 
-🔄 *Proceso:*
-1️⃣ Separar primeros 6 dígitos de cada número
-2️⃣ Comparar los dígitos restantes
-3️⃣ Mantener iguales, marcar diferencias con `x`
+🔧 *Proceso:*
+1️⃣ Comparé los primeros 6 dígitos
+2️⃣ Los que coinciden los dejé igual
+3️⃣ Los que no, los marqué con `x`
 
-✨ *Resultado Final:*
+✨ *Resultado:*
 `{resultado}`
 ━━━━━━━━━━━━━━━━━━━
 """
@@ -461,23 +464,20 @@ def procesar_metodo_doble(method: str, num1: str, num2: str) -> str:
             mult2 = div2 * 5
             
             return f"""
-⚡ *Resultado - b10*sum*
-━━━━━━━━━━━━━━━━━━━
+⚡ *b10*sum - Resultado*
 
-📥 *Números de Entrada:*
+📥 *Números:*
 • T1: `{num1}`
 • T2: `{num2}`
 
-🔄 *Proceso:*
-1️⃣ Tomar dígitos centrales (posición 10-11)
-   • T1: `{d1_1}{d2_1}`
-   • T2: `{d1_2}{d2_2}`
-2️⃣ Sumar: `{d1_1}+{d1_2}={suma1}`, `{d2_1}+{d2_2}={suma2}`
-3️⃣ Dividir entre 2: `{div1:.1f}`, `{div2:.1f}`
-4️⃣ Multiplicar por 5: `{mult1:.1f}`, `{mult2:.1f}`
-5️⃣ Sumar resultados: `{int(mult1) + int(mult2)}`
+🔧 *Proceso matemático:*
+• Dígitos centrales: `{d1_1}{d2_1}` y `{d1_2}{d2_2}`
+• Suma: `{suma1}` y `{suma2}`
+• /2: `{div1:.1f}` y `{div2:.1f}`
+• *5: `{mult1:.1f}` y `{mult2:.1f}`
+• Total: `{int(mult1) + int(mult2)}`
 
-✨ *Resultado Final:*
+✨ *Resultado:*
 `{resultado}`
 ━━━━━━━━━━━━━━━━━━━
 """
@@ -493,64 +493,51 @@ def procesar_metodo_doble(method: str, num1: str, num2: str) -> str:
                 multiplicaciones.append(f"• `{d1} × {d2} = {int(d1)*int(d2)}`")
             
             return f"""
-🔬 *Resultado - MaterialDInVerter*
-━━━━━━━━━━━━━━━━━━━
+🔬 *MaterialDInVerter - Resultado*
 
-📥 *Números de Entrada:*
+📥 *Números:*
 • T1: `{num1}`
 • T2: `{num2}`
 
-🔄 *Proceso:*
-1️⃣ Separar en grupos de 8 dígitos
-   • T1: `{g1_t1}` | `{g2_t1}`
-   • T2: `{g1_t2}` | `{g2_t2}`
-
-2️⃣ Multiplicar dígito a dígito:
+🔧 *Proceso completo:*
+1️⃣ Grupos de 8: `{g1_t1}|{g2_t1}` y `{g1_t2}|{g2_t2}`
+2️⃣ Multiplicaciones:
 {chr(10).join(multiplicaciones)}
+3️⃣ Uní resultados y tomé los primeros 8
+4️⃣ Comparé con T1
+5️⃣ Si terminaba en `x`, lo cambié por 1
 
-3️⃣ Concatenar resultados y tomar primeros 8 dígitos
-4️⃣ Aplicar similitud con T1
-5️⃣ Si último dígito es `x`, reemplazar por 1
-
-✨ *Resultado Final:*
+✨ *Resultado final:*
 `{resultado}`
 ━━━━━━━━━━━━━━━━━━━
 """
     return None
 
 async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Comando /cmds - Solo muestra los comandos disponibles"""
-    await update.message.reply_text("""
-📋 *Comandos Disponibles*
-━━━━━━━━━━━━━━━━━━━
-
-/start - Iniciar el bot
-/cmds - Mostrar este mensaje
-
-🔐 *Métodos Disponibles:*
-• Activación - Reemplaza últimos 6 dígitos
-• Similitud - Compara dos números
-• b10*sum - Operaciones matemáticas
-• Indentación Lógica - Reorganización en grupos
-• MaterialDInVerter - Método más complejo
-
-💡 Usa /start para acceder al menú
-━━━━━━━━━━━━━━━━━━━
-""", parse_mode="Markdown")
+    """Comando /cmds - Muestra el menú principal"""
+    keyboard = [
+        [InlineKeyboardButton("🚪 Gateways", callback_data="gateways")],
+        [InlineKeyboardButton("📊 Estado", callback_data="estado")],
+        [InlineKeyboardButton("ℹ️ Ayuda", callback_data="ayuda")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "📋 *Menú Principal*\n━━━━━━━━━━━━━━\nSelecciona una opción:",
+        parse_mode="Markdown",
+        reply_markup=reply_markup
+    )
 
 if __name__ == '__main__':
     if not TOKEN:
         raise ValueError("Falta la variable BOT_TOKEN.")
     
-    # Inicia servidor HTTP secundario
     Thread(target=run_web_server, daemon=True).start()
     
-    # Inicia el bot de Telegram
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("cmds", cmds))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
-    print("🤖 Bot ExtraploradorKW activo...")
+    print("🤖 ExtraploradorKW activo...")
     app.run_polling()
